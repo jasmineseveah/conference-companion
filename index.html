@@ -1090,6 +1090,11 @@ footer .sp{margin-left:auto}
     data._subject = "Conference Companion walkthrough request: " + (data.organization || data.name);
     data._template = "table";
     data._captcha = "false";
+    data._replyto = data.email;   // replying to the lead email goes straight to the prospect
+    data._autoresponse = "Thanks " + data.name.split(" ")[0] + ", we have your request for a Conference Companion walkthrough" +
+      (data.event ? " for " + data.event : "") + ". We'll come back to you within one business day. " +
+      "If you send your agenda ahead, we'll have your event loaded before we talk. " +
+      "Jasmine Scott, DVOTD, jasmine@getdvotd.com";
 
     btn.disabled = true;
     btn.textContent = "Sending…";
