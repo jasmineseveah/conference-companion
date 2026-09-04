@@ -84,16 +84,21 @@
   .tags{position:absolute;inset:0;pointer-events:none}
   svg.lines .pt{fill:var(--gold)}
   svg.lines .ring{fill:none;stroke:var(--gold);stroke-width:1}
-  .feed{position:absolute;left:5vw;top:12vh;bottom:22vh;width:min(36vw,520px);z-index:2;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-start;gap:0}
-  .feed .feed-head{display:flex;align-items:center;gap:10px;font-family:var(--label);font-weight:700;font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:#fff;padding-bottom:12px;opacity:0}
+  .feed{position:absolute;left:5vw;bottom:7vh;width:min(30vw,380px);z-index:2;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;gap:0;transition:width .7s cubic-bezier(.2,.75,.2,1)}
+  .feed.big{width:min(40vw,560px)}
+  .feed .feed-head{display:flex;align-items:center;gap:10px;font-family:var(--label);font-weight:700;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:#fff;padding-bottom:10px;opacity:0;transition:font-size .7s}
+  .feed.big .feed-head{font-size:13px}
   .feed .feed-head i{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px 2px rgba(217,4,41,.55)}
-  .feed .item{opacity:0;transform:translateY(10px);padding:16px 0;border-top:1px solid rgba(255,255,255,.16);display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:baseline}
-  .feed .item b{font-family:var(--display);font-weight:400;font-size:22px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);white-space:nowrap;line-height:1}
-  .feed .item span{font-size:17px;line-height:1.4;color:#fff;text-shadow:0 1px 12px rgba(10,10,10,.95),0 0 2px rgba(0,0,0,.8)}
+  .feed .item{opacity:0;transform:translateY(10px);padding:10px 0;border-top:1px solid rgba(255,255,255,.16);display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:baseline;transition:padding .7s cubic-bezier(.2,.75,.2,1)}
+  .feed.big .item{padding:17px 0;gap:16px}
+  .feed .item b{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);white-space:nowrap;line-height:1;transition:font-size .7s cubic-bezier(.2,.75,.2,1)}
+  .feed.big .item b{font-size:24px}
+  .feed .item span{font-size:13.5px;line-height:1.4;color:#fff;text-shadow:0 1px 12px rgba(10,10,10,.95),0 0 2px rgba(0,0,0,.8);transition:font-size .7s cubic-bezier(.2,.75,.2,1)}
+  .feed.big .item span{font-size:18px}
   .tally{position:absolute;right:5vw;bottom:7vh;z-index:2;pointer-events:none;text-align:right;opacity:0;max-width:260px}
   .tally b{display:block;font-family:var(--display);font-weight:400;font-size:clamp(40px,4.6vw,64px);line-height:.95;color:var(--cream);font-variant-numeric:tabular-nums;text-shadow:0 4px 30px rgba(10,10,10,.9)}
   .tally span{display:block;margin-top:6px;font-family:var(--label);font-weight:600;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cream-dim)}
-  @media (max-width:900px){.feed{left:6vw;top:auto;bottom:5vh;width:88vw;justify-content:flex-end}.feed .item{padding:8px 0;gap:10px}.feed .item b{font-size:15px}.feed .item span{font-size:13px}.feed .feed-head{font-size:10.5px}.tally{display:none}
+  @media (max-width:900px){.feed,.feed.big{left:6vw;bottom:5vh;width:88vw;justify-content:flex-end}.feed.big .item{padding:8px 0}.feed.big .item b{font-size:15px}.feed.big .item span{font-size:13px}.feed .item{padding:8px 0;gap:10px}.feed .item b{font-size:15px}.feed .item span{font-size:13px}.feed .feed-head{font-size:10.5px}.tally{display:none}
     .stage .centre-shade{background:radial-gradient(75% 40% at 50% 50%, rgba(10,10,10,.6), transparent 72%)}}
   .tag{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;font-size:12.5px;letter-spacing:.03em;color:var(--cream);opacity:0;
        padding:0 2px 7px;border-bottom:1px solid rgba(217,4,41,.55);text-shadow:0 2px 14px rgba(10,10,10,.95),0 0 2px rgba(10,10,10,.9)}
@@ -1256,7 +1261,9 @@ function applyProgress(p){
     L.ring.style.opacity = (1-a*.6);
   });
   // the feed: statements arrive like texts, newest at the bottom, older ones settle back
-  const visible = W>900 ? 6 : 3;
+  const big = p > .24 && W>900;
+  document.getElementById('feed').classList.toggle('big', big);
+  const visible = big ? 6 : (W>900 ? 4 : 3);
   feedEls.forEach((el,i)=>{
     const a = easeOut(seg(p, .035+i*.02, .075+i*.02));
     const arrived = Math.min(feedEls.length, Math.floor((p-.035)/.02)+1);
