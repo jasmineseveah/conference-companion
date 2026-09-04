@@ -34,8 +34,10 @@
   @keyframes sweep{0%,55%{background-position:120% 0}85%,100%{background-position:-40% 0}}
   .hero h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(34px,6.6vw,100px);line-height:.94;letter-spacing:.02em;margin:0;white-space:nowrap;text-shadow:0 8px 50px rgba(10,10,10,.9),0 2px 10px rgba(10,10,10,.7)}
   .hero .sub{margin:24px 0 0;color:#fff;opacity:1;font-weight:500;font-size:clamp(16px,1.55vw,23px);line-height:1.5;max-width:44ch;text-shadow:0 2px 6px rgba(0,0,0,.9),0 2px 22px rgba(0,0,0,.9)}
-  .hero .scrollhint{margin-top:40px;font-family:var(--label);font-weight:600;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 2px 12px rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;gap:12px}
-  .hero .scrollhint i{display:block;width:1px;height:38px;background:linear-gradient(180deg,var(--gold),transparent)}
+  .hero .scrollhint{margin-top:44px;font-family:var(--label);font-weight:700;font-size:15px;letter-spacing:.34em;text-transform:uppercase;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;gap:12px}
+  .hero .scrollhint i{display:block;width:2px;height:56px;border-radius:2px;background:linear-gradient(180deg,var(--gold),rgba(217,4,41,0))}
+  .hero .scrollhint b{display:block;width:14px;height:14px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg);margin-top:-6px;animation:nudge 1.6s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.8))}
+  @keyframes nudge{0%,100%{transform:translateY(0) rotate(45deg);opacity:.9}50%{transform:translateY(8px) rotate(45deg);opacity:1}}
   .hero .brandmark,.hero .sub,.hero .scrollhint{opacity:0;animation:rise .9s cubic-bezier(.2,.75,.2,1) forwards}
   .hero .brandmark{animation-delay:.25s}
   .hero .sub{animation-delay:1.15s}
@@ -46,6 +48,7 @@
   @keyframes reveal{to{clip-path:inset(0 0 -20% 0);transform:none}}
   @keyframes rise{to{opacity:1;transform:none}}
   .hero .scrollhint i{animation:drop 2.2s ease-in-out 2s infinite}
+  @media (max-width:640px){.hero .scrollhint{font-size:13px;margin-top:34px}.hero .scrollhint i{height:40px}}
   @keyframes drop{0%{transform:scaleY(.15);transform-origin:top;opacity:.4}50%{transform:scaleY(1);transform-origin:top;opacity:1}51%{transform-origin:bottom}100%{transform:scaleY(.15);transform-origin:bottom;opacity:.4}}
   /* cinema: letterbox bars at rest, film grain, deeper vignette */
   .stage .bar{position:absolute;left:0;right:0;height:7.5vh;background:#000;z-index:5;pointer-events:none}
@@ -518,7 +521,7 @@ footer .sp{margin-left:auto}
       <p class="brandmark">DVOTD · The Conference Companion</p>
       <h1><span class="l1">Your attendees get an experience</span><br><span class="l2">while you get the <em>intelligence.</em></span></h1>
       <p class="sub">Thousands of attendees. Each one told your event what they came to achieve, before the first session began.</p>
-      <div class="scrollhint"><span>Scroll</span><i></i></div>
+      <div class="scrollhint"><span>Scroll</span><i></i><b aria-hidden="true"></b></div>
     </div>
 
     <div class="mind" id="mind">
