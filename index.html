@@ -639,7 +639,7 @@ footer .sp{margin-left:auto}
 </section>
 
 <!-- ========================== VOICES ============================ -->
-<section class="voices">
+<section class="voices" id="voices">
   <video class="bgloop" muted loop playsinline preload="none" aria-hidden="true"></video>
   <canvas class="haze" aria-hidden="true"></canvas>
   <div class="wrap">
@@ -728,7 +728,7 @@ footer .sp{margin-left:auto}
 </section>
 
 <!-- =========================== WORTH =========================== -->
-<section>
+<section id="worth">
   <div class="wrap">
     <div class="sec-head narrow reveal">
       <span class="eyebrow">What that data is actually worth</span>
@@ -820,13 +820,15 @@ footer .sp{margin-left:auto}
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ================= CONFIGURE ME ==================
-     Where lead submissions go. Leave "" and the form
-     falls back to opening a pre-filled email instead.
-     Paste a Zapier catch-hook or a Firebase function URL. */
-  // FormSubmit delivers straight to the inbox below. The first submission triggers a one-time
-  // activation email to that address; after it is confirmed, every lead lands in the inbox.
-  var LEAD_ENDPOINT = "https://formsubmit.co/ajax/jasmine@getdvotd.com";
-  var LEAD_EMAIL    = "jasmine@getdvotd.com";
+     Both endpoints are Airtable "When webhook received" automations in the
+     DVOTD Summit Tracker base. Leads: saves a Companion Leads row, emails
+     jasmine@getdvotd.com and sends the prospect a confirmation. Visits: logs
+     one Companion Visits row per open. Leave LEAD_ENDPOINT "" to fall back to
+     a pre-filled email; leave VISIT_ENDPOINT "" to disable tracking. */
+  var LEAD_ENDPOINT  = "https://hooks.airtable.com/workflows/v1/genericWebhook/appJVo1KAaErRUyDn/wflla2CzRPpsKmQtp/wtrmIlKmJyZj5YtOt";
+  var VISIT_ENDPOINT = "https://hooks.airtable.com/workflows/v1/genericWebhook/appJVo1KAaErRUyDn/wflcLPem1FZcAfsLs/wtrZWboIoGgMUqIdU";
+  var LEAD_EMAIL     = "jasmine@getdvotd.com";
+  window.VISIT_ENDPOINT = VISIT_ENDPOINT;
   /* ================================================= */
 
   /* ---------------- shared conversation player ---------------- */
@@ -1086,15 +1088,9 @@ footer .sp{margin-left:auto}
       show("err", "That email address doesn't look right — mind checking it?"); return;
     }
     data.submittedAt = new Date().toISOString();
-    data.source = "conference-companion-host-page";
-    data._subject = "Conference Companion walkthrough request: " + (data.organization || data.name);
-    data._template = "table";
-    data._captcha = "false";
-    data._replyto = data.email;   // replying to the lead email goes straight to the prospect
-    data._autoresponse = "Thanks " + data.name.split(" ")[0] + ", we have your request for a Conference Companion walkthrough" +
-      (data.event ? " for " + data.event : "") + ". We'll come back to you within one business day. " +
-      "If you send your agenda ahead, we'll have your event loaded before we talk. " +
-      "Jasmine Scott, DVOTD, jasmine@getdvotd.com";
+    data.source = "companion.getdvotd.com";
+    data.page = location.href.split("#")[0];
+    try{ var code = localStorage.getItem("cc_code"); if (code) data.note = (data.note ? data.note + "\n\n" : "") + "Link code: " + code; }catch(_){}
 
     btn.disabled = true;
     btn.textContent = "Sending…";
@@ -1115,11 +1111,14 @@ footer .sp{margin-left:auto}
 
     if (!LEAD_ENDPOINT){ failed(); return; }
 
+    // Form-encoded + no-cors: no preflight, so the browser delivers it to Airtable
+    // directly. The response is opaque, so a resolved fetch means "delivered".
     fetch(LEAD_ENDPOINT, {
       method: "POST",
-      headers: {"Content-Type": "application/json", "Accept": "application/json"},
-      body: JSON.stringify(data)
-    }).then(function(res){ if (res.ok) sent(); else failed(); }).catch(failed);
+      mode: "no-cors",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: new URLSearchParams(data).toString()
+    }).then(sent).catch(failed);
   });
 })();
 </script>
@@ -1429,6 +1428,70 @@ window.addEventListener('resize', ()=>{ layout(); if(DEBUG_P===null) onScroll();
 function start(){ layout(); if(window.__debugP!==undefined){ applyProgress(window.__debugP); document.body.dataset.ready='1'; } else { onScroll(); } }
 if(plateA.complete && plateB.complete) start(); else Promise.all([plateA.decode().catch(()=>{}), plateB.decode().catch(()=>{})]).then(start);
 if(document.readyState==='complete') loadFrames(); else addEventListener('load', loadFrames);
+</script>
+<script>
+/* ---------------- visit tracking (Airtable "Companion Visits") ----------------
+   One row per visit: link code (?v=abc), first visit or return, deepest
+   section reached, seconds on page, device. Sent once, when the tab is hidden
+   or closed. Open the page with ?notrack once to exclude your own device. */
+(function(){
+  var END = window.VISIT_ENDPOINT;
+  if (!END || !window.localStorage) return;
+  var host = location.hostname;
+  if (host === "localhost" || host === "127.0.0.1" || host === "") return;
+  var q = new URLSearchParams(location.search);
+  try{
+    if (q.has("notrack")) localStorage.setItem("cc_notrack","1");
+    if (localStorage.getItem("cc_notrack")) return;
+  }catch(_){ return; }
+
+  function rid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  var vid = localStorage.getItem("cc_vid"); if (!vid){ vid = rid(); localStorage.setItem("cc_vid", vid); }
+  var code = q.get("v") || q.get("code") || "";
+  if (code) localStorage.setItem("cc_code", code); else code = localStorage.getItem("cc_code") || "";
+  // a reload inside the same tab does not count as a new visit
+  var n;
+  if (sessionStorage.getItem("cc_visit")){ n = +sessionStorage.getItem("cc_visit"); }
+  else { n = (+localStorage.getItem("cc_visits") || 0) + 1; localStorage.setItem("cc_visits", n); sessionStorage.setItem("cc_visit", n); }
+  if (sessionStorage.getItem("cc_sent") === String(n)) return;
+
+  var opened = new Date();
+  var W = innerWidth, device = W <= 760 ? "Phone" : (W <= 1100 ? "Tablet" : "Desktop");
+  var order = [["stage","Landing"],["problem","The problem"],["journey","Nine steps"],["voices","Voices"],["dashboard","Dashboard"],["phases","Before, during, after"],["worth","What it's worth"],["book","Booking form"]];
+  var deepest = 0, mind = false;
+  if ("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting){ var i = +e.target.getAttribute("data-track"); if (i > deepest) deepest = i; } });
+    }, {threshold: 0.2});
+    order.forEach(function(o,i){ var el = document.getElementById(o[0]); if (el){ el.setAttribute("data-track", i); io.observe(el); } });
+  }
+  addEventListener("scroll", function(){ if (!mind && scrollY > innerHeight * 2.2) mind = true; }, {passive:true});
+
+  var sent = false;
+  function send(){
+    if (sent) return; sent = true;
+    var label = deepest === 0 && mind ? "Inside the mind" : order[deepest][1];
+    var secs = Math.round((Date.now() - opened.getTime())/1000);
+    var body = new URLSearchParams({
+      visit: (code || "direct") + " · visit " + n + " · " + opened.toISOString().slice(0,10),
+      code: code || "direct",
+      visitNumber: String(n),
+      type: n === 1 ? "First visit" : "Return",
+      deepest: label,
+      seconds: String(secs),
+      device: device,
+      opened: opened.toISOString(),
+      visitor: vid,
+      page: location.href.split("#")[0]
+    });
+    try{ sessionStorage.setItem("cc_sent", String(n)); }catch(_){}
+    var ok = false;
+    try{ ok = navigator.sendBeacon && navigator.sendBeacon(END, body); }catch(_){}
+    if (!ok){ try{ fetch(END, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"application/x-www-form-urlencoded"}, body: body.toString()}); }catch(_){} }
+  }
+  addEventListener("pagehide", send);
+  document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "hidden") send(); });
+})();
 </script>
 <script src="frames/manifest.js"></script>
 </body>
