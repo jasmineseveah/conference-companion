@@ -820,13 +820,11 @@ footer .sp{margin-left:auto}
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ================= CONFIGURE ME ==================
-     Both endpoints are Airtable "When webhook received" automations in the
-     DVOTD Summit Tracker base. Leads: saves a Companion Leads row, emails
-     jasmine@getdvotd.com and sends the prospect a confirmation. Visits: logs
-     one Companion Visits row per open. Leave LEAD_ENDPOINT "" to fall back to
-     a pre-filled email; leave VISIT_ENDPOINT "" to disable tracking. */
-  var LEAD_ENDPOINT  = "https://hooks.airtable.com/workflows/v1/genericWebhook/appJVo1KAaErRUyDn/wflla2CzRPpsKmQtp/wtrmIlKmJyZj5YtOt";
-  var VISIT_ENDPOINT = "https://hooks.airtable.com/workflows/v1/genericWebhook/appJVo1KAaErRUyDn/wflcLPem1FZcAfsLs/wtrZWboIoGgMUqIdU";
+     Leads go to FormSubmit, which emails jasmine@getdvotd.com (activated Sept 4, 2026)
+     and sends the prospect an auto-reply. Leave LEAD_ENDPOINT "" to fall back to a
+     pre-filled email. VISIT_ENDPOINT is where visit tracking would post; "" = off. */
+  var LEAD_ENDPOINT  = "https://formsubmit.co/ajax/jasmine@getdvotd.com";
+  var VISIT_ENDPOINT = "";
   var LEAD_EMAIL     = "jasmine@getdvotd.com";
   window.VISIT_ENDPOINT = VISIT_ENDPOINT;
   /* ================================================= */
@@ -1091,6 +1089,14 @@ footer .sp{margin-left:auto}
     data.source = "companion.getdvotd.com";
     data.page = location.href.split("#")[0];
     try{ var code = localStorage.getItem("cc_code"); if (code) data.note = (data.note ? data.note + "\n\n" : "") + "Link code: " + code; }catch(_){}
+    data._subject = "Conference Companion walkthrough request: " + (data.organization || data.name);
+    data._template = "table";
+    data._captcha = "false";
+    data._replyto = data.email;   // replying to the lead email goes straight to the prospect
+    data._autoresponse = "Thanks " + data.name.split(" ")[0] + ", we have your request for a Conference Companion walkthrough" +
+      (data.event ? " for " + data.event : "") + ". We'll come back to you within one business day. " +
+      "If you send your agenda ahead, we'll have your event loaded before we talk. " +
+      "Jasmine Scott, DVOTD, jasmine@getdvotd.com";
 
     btn.disabled = true;
     btn.textContent = "Sending…";
@@ -1111,14 +1117,11 @@ footer .sp{margin-left:auto}
 
     if (!LEAD_ENDPOINT){ failed(); return; }
 
-    // Form-encoded + no-cors: no preflight, so the browser delivers it to Airtable
-    // directly. The response is opaque, so a resolved fetch means "delivered".
     fetch(LEAD_ENDPOINT, {
       method: "POST",
-      mode: "no-cors",
-      headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: new URLSearchParams(data).toString()
-    }).then(sent).catch(failed);
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: JSON.stringify(data)
+    }).then(function(res){ if (res.ok) sent(); else failed(); }).catch(failed);
   });
 })();
 </script>
@@ -1430,7 +1433,7 @@ if(plateA.complete && plateB.complete) start(); else Promise.all([plateA.decode(
 if(document.readyState==='complete') loadFrames(); else addEventListener('load', loadFrames);
 </script>
 <script>
-/* ---------------- visit tracking (Airtable "Companion Visits") ----------------
+/* ---------------- visit tracking (off unless VISIT_ENDPOINT is set) ----------------
    One row per visit: link code (?v=abc), first visit or return, deepest
    section reached, seconds on page, device. Sent once, when the tab is hidden
    or closed. Open the page with ?notrack once to exclude your own device. */
