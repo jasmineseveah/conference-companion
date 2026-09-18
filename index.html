@@ -752,7 +752,7 @@ footer .sp{margin-left:auto}
       <div class="reveal">
         <span class="eyebrow">What it takes from your team</span>
         <h2 style="margin-top:18px">One decision.<br>One conversation.</h2>
-        <p class="lede">Your team provides your brand and your approvals, not technology management. Book twenty minutes, send your agenda ahead, and what you're looking at is your own conference: your sessions, your speakers, your dates.</p>
+        <p class="lede">Your team provides your brand and your approvals, not technology management. Book twenty minutes and we'll walk you through it.</p>
         <ul class="assure">
           <li>You'll see the host dashboard on a live event, not slides.</li>
           <li>Find out how to enhance your conference.</li>
@@ -820,10 +820,14 @@ footer .sp{margin-left:auto}
   var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   /* ================= CONFIGURE ME ==================
-     Leads go to FormSubmit, which emails jasmine@getdvotd.com (activated Sept 4, 2026)
-     and sends the prospect an auto-reply. Leave LEAD_ENDPOINT "" to fall back to a
-     pre-filled email. VISIT_ENDPOINT is where visit tracking would post; "" = off. */
-  var LEAD_ENDPOINT  = "https://formsubmit.co/ajax/jasmine@getdvotd.com";
+     Leads POST to the Cloudflare Worker in lead-worker/worker.js, which sends both
+     the notification and the prospect auto-reply through Resend, authenticated as
+     getdvotd.com so they pass SPF/DKIM and clear the domain's DMARC policy.
+     (FormSubmit was dropped Sept 18, 2026: it cannot authenticate as this domain,
+     so DMARC p=quarantine sent everything it mailed to Junk.)
+     Leave LEAD_ENDPOINT "" to fall back to a pre-filled email.
+     VISIT_ENDPOINT is where visit tracking would post; "" = off. */
+  var LEAD_ENDPOINT  = "https://cc-lead.jasmine-aea.workers.dev";
   var VISIT_ENDPOINT = "";
   var LEAD_EMAIL     = "jasmine@getdvotd.com";
   window.VISIT_ENDPOINT = VISIT_ENDPOINT;
@@ -1088,22 +1092,15 @@ footer .sp{margin-left:auto}
     data.submittedAt = new Date().toISOString();
     data.source = "companion.getdvotd.com";
     data.page = location.href.split("#")[0];
-    try{ var code = localStorage.getItem("cc_code"); if (code) data.note = (data.note ? data.note + "\n\n" : "") + "Link code: " + code; }catch(_){}
-    data._subject = "Conference Companion walkthrough request: " + (data.organization || data.name);
-    data._template = "table";
-    data._captcha = "false";
-    data._replyto = data.email;   // replying to the lead email goes straight to the prospect
-    data._autoresponse = "Thanks " + data.name.split(" ")[0] + ", we have your request for a Conference Companion walkthrough" +
-      (data.event ? " for " + data.event : "") + ". We'll come back to you within one business day. " +
-      "If you send your agenda ahead, we'll have your event loaded before we talk. " +
-      "Jasmine Scott, DVOTD, jasmine@getdvotd.com";
+    try{ var code = localStorage.getItem("cc_code"); if (code) data.code = code; }catch(_){}
+    /* Subject line, email templates and the auto-reply all live in the Worker now. */
 
     btn.disabled = true;
     btn.textContent = "Sending…";
 
     function sent(){
       form.classList.add("sent");
-      show("ok", "Got it, " + data.name.split(" ")[0] + ". We'll come back to you within one business day — and if you send your agenda ahead, we'll have your event loaded before we talk.");
+      show("ok", "Got it, " + data.name.split(" ")[0] + ". We'll come back to you within one business day.");
     }
     function failed(){
       btn.disabled = false;
@@ -1121,7 +1118,11 @@ footer .sp{margin-left:auto}
       method: "POST",
       headers: {"Content-Type": "application/json", "Accept": "application/json"},
       body: JSON.stringify(data)
-    }).then(function(res){ if (res.ok) sent(); else failed(); }).catch(failed);
+    }).then(function(res){
+      return res.json().catch(function(){ return null; }).then(function(out){
+        if (res.ok && (!out || out.ok !== false)) sent(); else failed();
+      });
+    }).catch(failed);
   });
 })();
 </script>
